@@ -47,15 +47,25 @@ public class Boundary  implements Serializable {
             }
             return 18;
         }
+
+        else if(latInput==latLow || latInput == latHigh){
+            if(date == 1 || date == 31){
+                 return 12;
+            }
+            return 18;
+        }
+
         else if( longInput == longLow || longInput == longHigh){
             if(date == 1 || date == 31){
                 return 12;
             }
             return 18;
         }
+        
         else if (date == 1 || date == 31){
             return 18;
         }
+        
         return 27;
     }
 
