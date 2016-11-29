@@ -23,10 +23,11 @@ public class NYCTaxi implements Serializable {
         SparkConf conf = new SparkConf().setMaster("local[*]").setAppName("NYC App");
         JavaSparkContext sc = new JavaSparkContext(conf);
 
-       // String path = "file:///C:\\test/yellow_fd.csv";
-        String path = "file:///C:\\test/yellow_tripdata_2015-01.csv";
-        //String path = args[0];
-        JavaRDD<String> input = sc.textFile(path);
+        //String path = "file:///C:\\test/yellow_fd.csv";
+        //String path = "file:///C:\\test/yellow_tripdata_2015-01.csv";
+        String inputPath = args[0];
+        String outputPath = args[1];
+        JavaRDD<String> input = sc.textFile(inputPath);
 
         //Store the header to be removed
         String header = input.first();
@@ -103,7 +104,7 @@ public class NYCTaxi implements Serializable {
 
         //Write results to file
         try {
-            File file = new File("C:\\test\\filename.txt");
+            File file = new File(outputPath);
             if (!file.exists()) file.createNewFile();
             FileWriter fw = new FileWriter(file.getAbsoluteFile());
             BufferedWriter bw = new BufferedWriter(fw);
