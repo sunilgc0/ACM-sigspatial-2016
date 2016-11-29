@@ -10,13 +10,13 @@ public class GetisCalculator implements Serializable {
     public static int spatialWeight = 1;
     public static int cellCount = 68200;
 
-    public static float getMean(float sigmaAttr){
-        return sigmaAttr/cellCount;
+    public static float getMean(float sigmaX){
+        return sigmaX/cellCount;
     }
 
-    public static float getSD(List<Integer> sigmaList, float mean){
+    public static float getSD(List<Integer> Xlist, float mean){
         long sum =0;
-        for(Integer item : sigmaList){
+        for(Integer item : Xlist){
             sum = sum + item * item;
         }
         float div = sum / (float) cellCount;
@@ -34,19 +34,15 @@ public class GetisCalculator implements Serializable {
         return result;
     }
 
-    public static float getScore(List<Integer> list, int pickupCount, List<List<Integer>> neighList, int neighborcount,
-                                 List<Integer> sigmaList, float sigmaAttr){
-        float numerator = sigmaAttr*(1-(neighborcount/(float)cellCount));
-        float mean = getMean(sigmaAttr);
-        float SD = getSD(sigmaList, mean);
-        float det = getDet(neighborcount);
+    public static float getScore(List<Integer> sigmaList, float sigmaAttr, long sigmaX,  List<Integer> Xlist){
+        int neighborCount = sigmaList.size();
+        float mean = getMean(sigmaX);
+        float numerator = sigmaAttr - (mean * neighborCount);
+        float SD = getSD(Xlist, mean);
+        float det = getDet(neighborCount);
         float denominator = SD * det;
 
         float zscore = numerator/denominator;
-
         return zscore;
     }
-
-
-
 }

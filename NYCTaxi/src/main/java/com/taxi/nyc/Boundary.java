@@ -1,6 +1,5 @@
 package com.taxi.nyc;
 
-import org.apache.spark.api.java.JavaPairRDD;
 import scala.Tuple2;
 
 import java.io.Serializable;
@@ -27,46 +26,13 @@ public class Boundary  implements Serializable {
 
     public static List<Integer> getCellLocation(float latInput, float longInput, int date){
         List<Integer> list = new ArrayList<>();
-        int lat = (int)(latInput*100);
-        int longi = (int)(longInput*100);
+        int lat = (int)((latInput-0.01)*100);
+        int longi = (int)((longInput+0.01)*100);
         int day = date - 1;
         list.add(lat);
         list.add(longi);
         list.add(day);
         return list;
-    }
-
-    public static int numberNeighbors(float latInput, float longInput, int date){
-        //adding 1 extra to include the cell itself
-        if(latInput==latLow || latInput == latHigh){
-            if(longInput == longLow || longInput == longHigh){
-                if(date == 1 || date == 31){
-                    return 8;
-                }
-                return 12;
-            }
-            return 18;
-        }
-
-        else if(latInput==latLow || latInput == latHigh){
-            if(date == 1 || date == 31){
-                 return 12;
-            }
-            return 18;
-        }
-
-        else if( longInput == longLow || longInput == longHigh){
-            if(date == 1 || date == 31){
-                return 12;
-            }
-            return 18;
-        }
-        
-        else if (date == 1 || date == 31){
-            return 18;
-        }
-        
-        return 27;
     }
 
     public static List<List<Integer>> NeighborList(List<Integer> list) {
@@ -99,19 +65,7 @@ public class Boundary  implements Serializable {
         return sum;
     }
 
-    public static List<Integer> getSumList(JavaPairRDD<List<Integer>, Integer> pairRDD, List<List<Integer>> neighborList){
-        List<Integer> neighSumList = new ArrayList<>();
-        for(List<Integer> list: neighborList){
-            List<Integer> result = pairRDD.lookup(list);
-            if(result.size()!=0) {
-                Integer sum = result.get(0);
-                neighSumList.add(sum);
-            }
-        }
-        return neighSumList;
-    }
-
-    public static List<Integer> getSumLists(List<Tuple2<List<Integer>, Integer>> pairRDD, List<List<Integer>> neighborList){
+    public static List<Integer> getSigmaList(List<Tuple2<List<Integer>, Integer>> pairRDD, List<List<Integer>> neighborList){
         List<Integer> sigmaList = new ArrayList<>();
         for(List<Integer> list: neighborList){
             for(Tuple2 t : pairRDD){
