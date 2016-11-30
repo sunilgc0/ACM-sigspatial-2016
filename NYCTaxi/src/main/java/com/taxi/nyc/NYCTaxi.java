@@ -11,9 +11,12 @@ import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.broadcast.Broadcast;
+import org.scalactic.Bool;
 import scala.Tuple2;
 
 import java.io.*;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
@@ -23,10 +26,10 @@ public class NYCTaxi implements Serializable {
         SparkConf conf = new SparkConf().setMaster("local[*]").setAppName("NYC App");
         JavaSparkContext sc = new JavaSparkContext(conf);
 
-        //String path = "file:///C:\\test/yellow_fd.csv";
-        //String path = "file:///C:\\test/yellow_tripdata_2015-01.csv";
-        String inputPath = args[0];
-        String outputPath = args[1];
+        String inputPath = "file:///C:\\test/yellow_million.csv";
+        //String inputPath = "file:///C:\\test/yellow_tripdata_2015-01.csv";
+        //String inputPath = args[0];
+        //String outputPath = args[1];
         JavaRDD<String> input = sc.textFile(inputPath);
 
         //Store the header to be removed
@@ -36,29 +39,41 @@ public class NYCTaxi implements Serializable {
         JavaRDD<String> withoutHeader = input.filter(filterPredicate);
 
         //Create Objects for each trip
-        Function<String, TaxiTrip> mapLines = lines -> {
+        PairFunction<String, Integer, Float[]> mapLines = lines -> {
             String[] fields = lines.split(",");
-            TaxiTrip taxiTrip = new TaxiTrip(fields[1], fields [4], fields[5], fields[6]);
-            return taxiTrip;
+
+            Date pickupDate = new Date();
+            Float[] coOrdinate = new Float[2];;
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            try {
+                pickupDate = simpleDateFormat.parse(fields[1]);
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+
+            int  day = pickupDate.getDate();
+            coOrdinate[0] = Float.valueOf(fields[6]);
+            coOrdinate[1] = Float.valueOf(fields[5]);
+            return new Tuple2<>(day, coOrdinate);
         };
-        JavaRDD<TaxiTrip> collection = withoutHeader.map(mapLines);
+        JavaPairRDD<Integer, Float[]> collection = withoutHeader.mapToPair(mapLines);
 
         //Filter trips which are not within new york
-        Function<TaxiTrip, Boolean> clipping = (taxiTrip) -> {
-            float lat = taxiTrip.coOrdinate[0];
-            float lon = taxiTrip.coOrdinate[1];
-            return(lat>=40.5f && lat<=40.9f && lon>=-74.25f && lon<=-73.7f);
+        Function<Tuple2<Integer, Float[]>, Boolean> clipping = (Tuple2<Integer, Float[]> tuple2) -> {
+            Float[] coOrd = tuple2._2();
+            return(coOrd[0]>=40.5f && coOrd[0]<=40.9f && coOrd[1]>=-74.25f && coOrd[1]<=-73.7f);
         };
-        JavaRDD<TaxiTrip> clippedArea = collection.filter(clipping);
+        Boolean value = new Boolean(true);
+        JavaPairRDD<Integer, Float[]> clippedArea = collection.filter(clipping);
 
         //Pair Date with pickup location for each trip
-        PairFunction<TaxiTrip, Integer, Float[]> pairFunction = (TaxiTrip taxiTrip) -> {
-            Date date = taxiTrip.pickupDate;
-            int  day = date.getDate();
-            Float[] coOrd = taxiTrip.coOrdinate;
+        PairFunction<Tuple2<Integer, Float[]>, Integer, Float[]> pairFunction = (Tuple2<Integer, Float[]> tuple2) -> {
+            int  day = tuple2._1();
+            Float[] coOrd = tuple2._2();
             return new Tuple2<>(day, coOrd);
         };
         JavaPairRDD<Integer, Float[]> pairRDD  = clippedArea.mapToPair(pairFunction);
+
 
         //Get number of pickups for each location
         PairFunction<Tuple2<Integer, Float[]>,List<Integer>,Integer> getPickupCount = (Tuple2<Integer, Float[]> tuple2) -> {
@@ -104,7 +119,8 @@ public class NYCTaxi implements Serializable {
 
         //Write results to file
         try {
-            File file = new File(outputPath);
+            //File file = new File(outputPath);
+            File file  = new File("C:\\test\\filename.txt");
             if (!file.exists()) file.createNewFile();
             FileWriter fw = new FileWriter(file.getAbsoluteFile());
             BufferedWriter bw = new BufferedWriter(fw);
