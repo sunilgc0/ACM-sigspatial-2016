@@ -26,8 +26,8 @@ public class NYCTaxi implements Serializable {
         SparkConf conf = new SparkConf().setMaster("local[*]").setAppName("NYC App");
         JavaSparkContext sc = new JavaSparkContext(conf);
 
-        String inputPath = "file:///C:\\test/yellow_million.csv";
-        //String inputPath = "file:///C:\\test/yellow_tripdata_2015-01.csv";
+        //String inputPath = "file:///C:\\test/yellow_million.csv";
+        String inputPath = "file:///C:\\test/yellow_tripdata_2015-01.csv";
         //String inputPath = args[0];
         //String outputPath = args[1];
         JavaRDD<String> input = sc.textFile(inputPath);
@@ -58,21 +58,12 @@ public class NYCTaxi implements Serializable {
         };
         JavaPairRDD<Integer, Float[]> collection = withoutHeader.mapToPair(mapLines);
 
-        //Filter trips which are not within new york
+        //Filter trips which are not within new york and Pair Date with pickup location for each trip
         Function<Tuple2<Integer, Float[]>, Boolean> clipping = (Tuple2<Integer, Float[]> tuple2) -> {
             Float[] coOrd = tuple2._2();
             return(coOrd[0]>=40.5f && coOrd[0]<=40.9f && coOrd[1]>=-74.25f && coOrd[1]<=-73.7f);
         };
-        Boolean value = new Boolean(true);
-        JavaPairRDD<Integer, Float[]> clippedArea = collection.filter(clipping);
-
-        //Pair Date with pickup location for each trip
-        PairFunction<Tuple2<Integer, Float[]>, Integer, Float[]> pairFunction = (Tuple2<Integer, Float[]> tuple2) -> {
-            int  day = tuple2._1();
-            Float[] coOrd = tuple2._2();
-            return new Tuple2<>(day, coOrd);
-        };
-        JavaPairRDD<Integer, Float[]> pairRDD  = clippedArea.mapToPair(pairFunction);
+        JavaPairRDD<Integer, Float[]> pairRDD = collection.filter(clipping);
 
 
         //Get number of pickups for each location
