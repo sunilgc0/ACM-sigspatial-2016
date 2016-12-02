@@ -11,7 +11,6 @@ import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.broadcast.Broadcast;
-import org.scalactic.Bool;
 import scala.Tuple2;
 
 import java.io.*;
@@ -26,8 +25,8 @@ public class NYCTaxi implements Serializable {
         SparkConf conf = new SparkConf().setMaster("local[*]").setAppName("NYC App");
         JavaSparkContext sc = new JavaSparkContext(conf);
 
-        //String inputPath = "file:///C:\\test/yellow_million.csv";
-        String inputPath = "file:///C:\\test/yellow_tripdata_2015-01.csv";
+        String inputPath = "file:///C:\\test/yellow_fd.csv";
+        //String inputPath = "file:///C:\\test/yellow_tripdata_2015-01.csv";
         //String inputPath = args[0];
         //String outputPath = args[1];
         JavaRDD<String> input = sc.textFile(inputPath);
@@ -65,7 +64,6 @@ public class NYCTaxi implements Serializable {
         };
         JavaPairRDD<Integer, Float[]> pairRDD = collection.filter(clipping);
 
-
         //Get number of pickups for each location
         PairFunction<Tuple2<Integer, Float[]>,List<Integer>,Integer> getPickupCount = (Tuple2<Integer, Float[]> tuple2) -> {
             Integer day = tuple2._1();
@@ -74,30 +72,35 @@ public class NYCTaxi implements Serializable {
             Float longi = coOrd[1];
 
             List<Integer> cellLocation = Boundary.getCellLocation(lat,longi,day);
-            Integer count = Integer.valueOf(1);
+            Integer count = 1;
             return new Tuple2<>(cellLocation,count);
         };
-        JavaPairRDD<List<Integer>, Integer> Locationcount = pairRDD.mapToPair(getPickupCount);
+        JavaPairRDD<List<Integer>, Integer> LocationCount = pairRDD.mapToPair(getPickupCount);
        //Reduce Function for sum
         Function2<Integer, Integer, Integer> reduceLocation = (accum, n) -> (accum + n);
-        JavaPairRDD<List<Integer>, Integer> reducedRDD = Locationcount.reduceByKey(reduceLocation);
+        JavaPairRDD<List<Integer>, Integer> reducedRDD = LocationCount.reduceByKey(reduceLocation);
 
         //It is sum of all pickups from all cells
-        long sigmaX = Locationcount.count();
+        long sigmaX = LocationCount.count();
+        System.out.println("Sum of all pickups from all cells "+ sigmaX);
         //It is list of all triple where some pickup happened
         List<Integer> Xlist = reducedRDD.values().collect();
         //RDD cannot be nested in other rdd map, so broadcast them and then use
         Broadcast<List<Tuple2<List<Integer>, Integer>>> broadcast = sc.broadcast(reducedRDD.collect());
+        //Calculate mean for this dataset
+        float mean = GetisCalculator.getMean(sigmaX);
+        //Calculate Standard deviation for this dataset
+        float SD = GetisCalculator.getSD(Xlist, mean);
+
         //Calculating getis ord for all cells
-        PairFunction<Tuple2<List<Integer>,Integer>, Float,List<Integer> > getis = (Tuple2<List<Integer>,Integer> tuple2) -> {
+        PairFunction<Tuple2<List<Integer>,Integer>, Float,List<Integer>> getis = (Tuple2<List<Integer>,Integer> tuple2) -> {
             List<Integer> locTriple = tuple2._1();
-            //neighborList is all potential nighbors i.e 27
+            //neighborList is all potential neighbors i.e 27
             List<List<Integer>> neighborList = Boundary.NeighborList(locTriple);
             //sigmaList has actual verified neighbors
-            List<Integer> sigmaList = Boundary.getSigmaList( broadcast.getValue(), neighborList);
-            //sum of all neighbors only
-            float sigmaAttr = Boundary.getSumNeighbors(sigmaList);
-            float zscore= GetisCalculator.getScore(sigmaList, sigmaAttr, sigmaX, Xlist);
+            List<Integer> sigmaList = Boundary.getSigmaList( broadcast.getValue(), neighborList, locTriple);
+
+            float zscore= GetisCalculator.getScore(sigmaList, mean, SD);
             return new Tuple2<>(zscore, locTriple);
         };
         JavaPairRDD<Float, List<Integer>> getisValues = reducedRDD.mapToPair(getis);

@@ -65,7 +65,7 @@ public class Boundary  implements Serializable {
         return sum;
     }
 
-    public static List<Integer> getSigmaList(List<Tuple2<List<Integer>, Integer>> pairRDD, List<List<Integer>> neighborList){
+    public static List<Integer> getSigmaList(List<Tuple2<List<Integer>, Integer>> pairRDD, List<List<Integer>> neighborList, List<Integer> l){
         List<Integer> sigmaList = new ArrayList<>();
         for(List<Integer> list: neighborList){
             for(Tuple2 t : pairRDD){

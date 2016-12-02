@@ -22,7 +22,9 @@ public class GetisCalculator implements Serializable {
         float div = sum / (float) cellCount;
         float diff = (div - (mean *mean));
         float SD = (float)Math.sqrt(diff);
+        System.out.println("SD is "+SD);
         return SD;
+
     }
 
     public static float getDet(int neighborCount){
@@ -34,11 +36,11 @@ public class GetisCalculator implements Serializable {
         return result;
     }
 
-    public static float getScore(List<Integer> sigmaList, float sigmaAttr, long sigmaX,  List<Integer> Xlist){
+    public static float getScore(List<Integer> sigmaList, float mean, float SD){
         int neighborCount = sigmaList.size();
-        float mean = getMean(sigmaX);
-        float numerator = sigmaAttr - (mean * neighborCount);
-        float SD = getSD(Xlist, mean);
+        //sum of all neighbors in sigmaList
+        float sigmaSum = Boundary.getSumNeighbors(sigmaList);
+        float numerator = sigmaSum - (mean * neighborCount);
         float det = getDet(neighborCount);
         float denominator = SD * det;
 
