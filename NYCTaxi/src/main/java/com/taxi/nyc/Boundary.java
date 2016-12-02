@@ -9,19 +9,20 @@ import java.util.List;
 /**
  * Created by Sunil on 22-Nov-16.
  */
+
+@SuppressWarnings({"all"})
 public class Boundary  implements Serializable {
     public static final float latLow = 40.5f;
     public static final float latHigh = 40.9f;
-    public static final float longLow = 73.7f;
-    public static final float longHigh = 74.25f;
-    public static final float coOrdStep =0.01f;
-    public static final float timeStep = 1;
+    public static final float longLow = -73.7f;
+    public static final float longHigh = -74.25f;
+    public static final float coOrdStep = 0.01f;
     public static int latAxis = (int) ((latHigh - latLow)/coOrdStep);
-    public static int longAxis = (int) ((longHigh - longLow)/coOrdStep);
+    public static int longAxis = (int) ((longLow -  longHigh)/coOrdStep);
 
     public static int cellCount(){
         int timeAxis = 31;
-        return latAxis*longAxis*timeAxis;    //68200
+        return latAxis*longAxis*timeAxis;   //68200
     }
 
     public static List<Integer> getCellLocation(float latInput, float longInput, int date){
@@ -40,8 +41,9 @@ public class Boundary  implements Serializable {
         int lon = list.get(1);
         int day = list.get(2);
 
-        List<List<Integer>> neighbor = new ArrayList<>();
+        List<List<Integer>> neighborList = new ArrayList<>();
 
+        //List all potential(Not actual) neighbors of current cell
         int[] arr={-1, 0, 1};
         for(int i : arr){
             for(int j :arr){
@@ -50,11 +52,11 @@ public class Boundary  implements Serializable {
                     result.add(0,lat + i);
                     result.add(1,lon + j);
                     result.add(2,day + k);
-                    neighbor.add(result);
+                    neighborList.add(result);
                 }
             }
         }
-        return neighbor;
+        return neighborList;
     }
 
     public static int getSumNeighbors(List<Integer> neighborList){

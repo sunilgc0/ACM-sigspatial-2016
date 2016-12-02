@@ -1,6 +1,3 @@
-/**
- * Created by Sunil on 16-Nov-16.
- */
 package com.taxi.nyc;
 
 import org.apache.spark.SparkConf;
@@ -16,17 +13,21 @@ import scala.Tuple2;
 import java.io.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+/**
+ * Created by Sunil on 16-Nov-16.
+ */
 
-
+@SuppressWarnings("all")
 public class NYCTaxi implements Serializable {
-    public static void main(String[] args) {
-        SparkConf conf = new SparkConf().setMaster("local[*]").setAppName("NYC App");
+        public static void main(String[] args) {
+        SparkConf conf = new SparkConf().setMaster("local[*]").setAppName("NYC Taxi Hotspot App");
         JavaSparkContext sc = new JavaSparkContext(conf);
 
-        String inputPath = "file:///C:\\test/yellow_fd.csv";
-        //String inputPath = "file:///C:\\test/yellow_tripdata_2015-01.csv";
+        //String inputPath = "file:///C:\\test/yellow_million.csv";
+        String inputPath = "file:///C:\\test/yellow_tripdata_2015-01.csv";
         //String inputPath = args[0];
         //String outputPath = args[1];
         JavaRDD<String> input = sc.textFile(inputPath);
@@ -42,7 +43,7 @@ public class NYCTaxi implements Serializable {
             String[] fields = lines.split(",");
 
             Date pickupDate = new Date();
-            Float[] coOrdinate = new Float[2];;
+            Float[] coOrdinate = new Float[2];
             SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             try {
                 pickupDate = simpleDateFormat.parse(fields[1]);
@@ -70,7 +71,6 @@ public class NYCTaxi implements Serializable {
             Float[] coOrd = tuple2._2();
             Float lat = coOrd[0];
             Float longi = coOrd[1];
-
             List<Integer> cellLocation = Boundary.getCellLocation(lat,longi,day);
             Integer count = 1;
             return new Tuple2<>(cellLocation,count);
@@ -80,11 +80,13 @@ public class NYCTaxi implements Serializable {
         Function2<Integer, Integer, Integer> reduceLocation = (accum, n) -> (accum + n);
         JavaPairRDD<List<Integer>, Integer> reducedRDD = LocationCount.reduceByKey(reduceLocation);
 
-        //It is sum of all pickups from all cells
-        long sigmaX = LocationCount.count();
-        System.out.println("Sum of all pickups from all cells "+ sigmaX);
         //It is list of all triple where some pickup happened
         List<Integer> Xlist = reducedRDD.values().collect();
+        //It is sum of all pickups from all cells
+        long sigmaX = 0; // LocationCount.count();
+        for(Integer x : Xlist){
+            sigmaX = sigmaX + x;
+        }
         //RDD cannot be nested in other rdd map, so broadcast them and then use
         Broadcast<List<Tuple2<List<Integer>, Integer>>> broadcast = sc.broadcast(reducedRDD.collect());
         //Calculate mean for this dataset
@@ -105,17 +107,13 @@ public class NYCTaxi implements Serializable {
         };
         JavaPairRDD<Float, List<Integer>> getisValues = reducedRDD.mapToPair(getis);
 
-        //Descending order of zscore
-        JavaPairRDD<Float, List<Integer>> finalResult  = getisValues.sortByKey(false); //false for descending order
-
-        //take top 50, from highest to decreasing values
-        List<Tuple2<Float, List<Integer>>> top50 = finalResult.take(50);
+       //Descending order of zscore, use takeOrdered for faster, sortbyKey is slower
+        List<Tuple2<Float, List<Integer>>> top50 = getisValues.takeOrdered(50, TupleComparator.INSTANCE);
 
         //Write results to file
         try {
             //File file = new File(outputPath);
             File file  = new File("C:\\test\\filename.txt");
-            if (!file.exists()) file.createNewFile();
             FileWriter fw = new FileWriter(file.getAbsoluteFile());
             BufferedWriter bw = new BufferedWriter(fw);
             for(Tuple2 tuple2 : top50){
@@ -124,10 +122,18 @@ public class NYCTaxi implements Serializable {
                 bw.write(String.valueOf(coord.get(0)+", "+coord.get(1)+", "+coord.get(2)+", "+zscore+"\n"));
             }
             bw.close();
-        } catch (IOException e) {
+        }
+        catch (IOException e) {
             e.printStackTrace();
         }
 
-        System.out.println("Highest zscore is "+finalResult.first()._1() +" from location and time "+ finalResult.first()._2());
+        System.out.println("Highest zscore is "+top50.get(0)._1() +" from location and time "+ top50.get(0)._2());
+    }
+
+    static class TupleComparator implements Comparator<Tuple2<Float, List<Integer>>>,Serializable {
+        final static TupleComparator INSTANCE = new TupleComparator();
+        public int compare(Tuple2<Float, List<Integer>> t1, Tuple2<Float, List<Integer>> t2) {
+            return -t1._1.compareTo(t2._1);     // sorts RDD elements descending
+        }
     }
 }

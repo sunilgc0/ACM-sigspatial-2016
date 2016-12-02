@@ -6,9 +6,9 @@ import java.util.List;
 /**
  * Created by Sunil on 22-Nov-16.
  */
+@SuppressWarnings({"all"})
 public class GetisCalculator implements Serializable {
-    public static int spatialWeight = 1;
-    public static int cellCount = 68200;
+    public static int cellCount = Boundary.cellCount();
 
     public static float getMean(float sigmaX){
         return sigmaX/cellCount;
@@ -22,9 +22,7 @@ public class GetisCalculator implements Serializable {
         float div = sum / (float) cellCount;
         float diff = (div - (mean *mean));
         float SD = (float)Math.sqrt(diff);
-        System.out.println("SD is "+SD);
         return SD;
-
     }
 
     public static float getDet(int neighborCount){
