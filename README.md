@@ -9,7 +9,7 @@
 * I am using input csv file with header, so please use input csv file with header
 
 ## How to run:
-./spark-submit --master <SPARK_MASTER_URL> --class com.taxi.nyc.NYCTaxi NYCTaxi.jar <INPUT_FILE> <OUPUT_FILE> 
+./spark-submit --master \<SPARK_MASTER_URL> --class com.taxi.nyc.NYCTaxi NYCTaxi.jar \<INPUT_FILE> \<OUPUT_FILE> 
 
 EXAMPLE
 ./spark-submit --master spark://ip-172-31-32-141:7077 --class com.taxi.nyc.NYCTaxi NYCTaxi.jar /home/ubuntu/datasets/yellow_tripdata_2015-01.csv 	 	/home/ubuntu/datasets/output.csv
