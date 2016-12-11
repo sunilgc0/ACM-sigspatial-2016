@@ -27,8 +27,8 @@ public class Boundary  implements Serializable {
 
     public static List<Integer> getCellLocation(float latInput, float longInput, int date){
         List<Integer> list = new ArrayList<>();
-        int lat = (int)((latInput)*100);
-        int longi = (int)((longInput)*100);
+        int lat = (int)Math.floor(latInput*100);
+        int longi = (int)Math.floor(longInput*100);
         int day = date - 1;
         list.add(lat);
         list.add(longi);

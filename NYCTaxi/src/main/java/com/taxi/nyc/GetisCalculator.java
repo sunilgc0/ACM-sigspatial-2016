@@ -10,17 +10,17 @@ import java.util.List;
 public class GetisCalculator implements Serializable {
     public static int cellCount = Boundary.cellCount();
 
-    public static float getMean(float sigmaX){
+    public static double getMean(float sigmaX){
         return sigmaX/cellCount;
     }
 
-    public static float getSD(List<Integer> Xlist, float mean){
+    public static double getSD(List<Integer> Xlist, double mean){
         long sum =0;
         for(Integer item : Xlist){
             sum = sum + item * item;
         }
         float div = sum / (float) cellCount;
-        float diff = (div - (mean *mean));
+        double diff = (div - (mean *mean));
         float SD = (float)Math.sqrt(diff);
         return SD;
     }
@@ -34,15 +34,15 @@ public class GetisCalculator implements Serializable {
         return result;
     }
 
-    public static float getScore(List<Integer> sigmaList, float mean, float SD){
+    public static double getScore(List<Integer> sigmaList, double mean, double SD){
         int neighborCount = sigmaList.size();
         //sum of all neighbors in sigmaList
         float sigmaSum = Boundary.getSumNeighbors(sigmaList);
-        float numerator = sigmaSum - (mean * neighborCount);
+        double numerator = sigmaSum - (mean * neighborCount);
         float det = getDet(neighborCount);
-        float denominator = SD * det;
+        double denominator = SD * det;
 
-        float zscore = numerator/denominator;
+        double zscore = numerator/denominator;
         return zscore;
     }
 }
